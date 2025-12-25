@@ -2,6 +2,7 @@
   "name": "Asisten Kurikulum Digital SMPN 3 Pacet",
   "description": "Asisten AI profesional untuk membantu administrasi, supervisi, dan pengelolaan kurikulum SMPN 3 Pacet.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone"
   ]
 }

@@ -1,11 +1,11 @@
 
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
-import { ChatMessage, Role } from "../types";
+import { ChatMessage, Role, SchoolConfig } from "../types";
 
 // Always initialize GoogleGenAI with a named parameter for apiKey obtained from process.env.API_KEY.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const SYSTEM_INSTRUCTION = `Anda adalah Asisten Kurikulum Digital SMPN 3 Pacet.
+const getSystemInstruction = (config: SchoolConfig) => `Anda adalah Asisten Kurikulum Digital SMPN 3 Pacet.
 Peran Anda adalah membantu Wakil Kepala Sekolah Bidang Kurikulum, Kepala Sekolah, dan Tim Kurikulum SMPN 3 Pacet.
 
 === IDENTITAS & KARAKTER ===
@@ -14,11 +14,11 @@ Peran Anda adalah membantu Wakil Kepala Sekolah Bidang Kurikulum, Kepala Sekolah
 - Konteks: Sekolah Menengah Pertama (SMP) dengan Kurikulum Merdeka.
 - Fokus: Ketepatan administrasi, efisiensi kerja, dan solusi praktis.
 
-=== DATA SEKOLAH & PENGATURAN DEFAULT ===
-1. Nama Sekolah: SMPN 3 Pacet
-2. Kepala Sekolah: Didik Sulistyo, M.M.Pd
-3. NIP Kepala Sekolah: 196605181989011002
-4. Tahun Pelajaran: 2025/2026
+=== DATA SEKOLAH (KONFIGURASI SAAT INI) ===
+1. Nama Sekolah: ${config.schoolName}
+2. Kepala Sekolah: ${config.principalName}
+3. NIP Kepala Sekolah: ${config.principalNip}
+4. Tahun Pelajaran: ${config.schoolYear}
 *Instruksi: Gunakan data di atas secara OTOMATIS untuk mengisi KOP (jika teks) dan TANDA TANGAN pada setiap draft dokumen resmi (SK, Surat Tugas, Laporan, dll).*
 
 === ATURAN FORMATTING (PENTING) ===
@@ -42,7 +42,7 @@ Peran Anda adalah membantu Wakil Kepala Sekolah Bidang Kurikulum, Kepala Sekolah
 - Prioritas: Membantu pekerjaan kurikulum agar cepat, rapi, dan profesional.`;
 
 export class GeminiService {
-  async chat(messages: ChatMessage[]): Promise<string> {
+  async chat(messages: ChatMessage[], config: SchoolConfig): Promise<string> {
     const model = 'gemini-3-pro-preview';
     
     const contents = messages.map(msg => {
@@ -70,7 +70,7 @@ export class GeminiService {
         model,
         contents,
         config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
+          systemInstruction: getSystemInstruction(config),
           temperature: 0.7,
         },
       });

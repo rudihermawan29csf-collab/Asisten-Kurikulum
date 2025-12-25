@@ -14,6 +14,13 @@ export interface ChatMessage {
   }>;
 }
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  date: number; // timestamp
+  messages: ChatMessage[];
+}
+
 export interface AppState {
   messages: ChatMessage[];
   isLoading: boolean;
@@ -24,4 +31,13 @@ export interface FileData {
   name: string;
   type: string;
   base64: string;
+}
+
+export interface SchoolConfig {
+  schoolName: string;
+  principalName: string;
+  principalNip: string;
+  schoolYear: string;
+  username: string; // New field
+  password: string; // New field
 }
