@@ -1,9 +1,6 @@
 
-import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ChatMessage, Role, SchoolConfig } from "../types";
-
-// Always initialize GoogleGenAI with a named parameter for apiKey obtained from process.env.API_KEY.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const getSystemInstruction = (config: SchoolConfig) => `Anda adalah Asisten Kurikulum Digital SMPN 3 Pacet.
 Peran Anda adalah membantu Wakil Kepala Sekolah Bidang Kurikulum, Kepala Sekolah, dan Tim Kurikulum SMPN 3 Pacet.
@@ -43,7 +40,14 @@ Peran Anda adalah membantu Wakil Kepala Sekolah Bidang Kurikulum, Kepala Sekolah
 
 export class GeminiService {
   async chat(messages: ChatMessage[], config: SchoolConfig): Promise<string> {
-    const model = 'gemini-3-pro-preview';
+    // Cek apakah API Key sudah diisi di pengaturan
+    if (!config.apiKey || config.apiKey.trim() === "") {
+        return "⚠️ **API Key belum diatur.**\n\nSilakan buka menu **Pengaturan** (klik nama akun di pojok kiri bawah), lalu masukkan Google Gemini API Key Anda pada kolom yang tersedia.\n\nAnda bisa mendapatkannya gratis di: aistudio.google.com";
+    }
+
+    // Inisialisasi AI secara dinamis menggunakan key dari Config (Input User)
+    const ai = new GoogleGenAI({ apiKey: config.apiKey });
+    const model = 'gemini-2.0-flash'; // Menggunakan model flash agar lebih cepat & hemat
     
     const contents = messages.map(msg => {
       const parts: any[] = [{ text: msg.text }];
@@ -76,9 +80,12 @@ export class GeminiService {
       });
 
       return response.text || "Maaf, saya tidak dapat menghasilkan respon saat ini.";
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gemini API Error:", error);
-      return "Terjadi kesalahan saat menghubungi server. Silakan coba lagi.";
+      if (error.message && error.message.includes("API key")) {
+          return "⚠️ **API Key Tidak Valid.**\nMohon periksa kembali API Key yang Anda masukkan di menu Pengaturan.";
+      }
+      return "Terjadi kesalahan saat menghubungi server. Silakan coba lagi atau periksa koneksi internet Anda.";
     }
   }
 }

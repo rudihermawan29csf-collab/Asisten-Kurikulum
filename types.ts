@@ -38,6 +38,7 @@ export interface SchoolConfig {
   principalName: string;
   principalNip: string;
   schoolYear: string;
-  username: string; // New field
-  password: string; // New field
+  username: string;
+  password: string;
+  apiKey: string; // Field baru untuk API Key
 }

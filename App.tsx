@@ -7,13 +7,17 @@ import FileUploader from './components/FileUploader';
 
 const App: React.FC = () => {
   // Config State (with Default Credentials)
+  // Check LocalStorage for saved API Key first
+  const savedApiKey = localStorage.getItem('smpn3_api_key') || "";
+  
   const [config, setConfig] = useState<SchoolConfig>({
     schoolName: "SMPN 3 Pacet",
     principalName: "Didik Sulistyo, M.M.Pd",
     principalNip: "196605181989011002",
     schoolYear: "2025/2026",
     username: "admin",
-    password: "007007Rh"
+    password: "007007Rh",
+    apiKey: savedApiKey // Load from storage
   });
 
   // Auth State
@@ -32,19 +36,12 @@ const App: React.FC = () => {
   const [pendingFiles, setPendingFiles] = useState<FileData[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'history'>('chat');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // State for mobile menu
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); 
   
   // Temp state for editing settings
   const [tempConfig, setTempConfig] = useState<SchoolConfig>(config);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Check LocalStorage for Auth (Optional Persistence)
-  useEffect(() => {
-    // If you want persistence, uncomment below:
-    // const auth = localStorage.getItem('is_auth');
-    // if (auth === 'true') setIsAuthenticated(true);
-  }, []);
 
   // Load History from LocalStorage on mount
   useEffect(() => {
@@ -62,7 +59,7 @@ const App: React.FC = () => {
         if (messages.length === 0) {
             const welcomeMsg = {
             role: Role.MODEL,
-            text: `Selamat datang! Saya Asisten Kurikulum Digital ${config.schoolName}.\n\nKonfigurasi Tahun Pelajaran ${config.schoolYear} aktif.\nData Kepala Sekolah: ${config.principalName} (NIP. ${config.principalNip}) telah dimuat.\n\nSilakan ketik instruksi atau unggah dokumen.`
+            text: `Selamat datang! Saya Asisten Kurikulum Digital ${config.schoolName}.\n\nKonfigurasi Tahun Pelajaran ${config.schoolYear} aktif.\nData Kepala Sekolah: ${config.principalName} (NIP. ${config.principalNip}) telah dimuat.\n\n${!config.apiKey ? '⚠️ **PENTING:** API Key belum diatur. Silakan masuk ke menu **Pengaturan** dan masukkan Gemini API Key agar saya dapat bekerja.' : 'Silakan ketik instruksi atau unggah dokumen.'}`
             };
             setMessages([welcomeMsg]);
         }
@@ -99,7 +96,6 @@ const App: React.FC = () => {
     if (loginUser === config.username && loginPass === config.password) {
         setIsAuthenticated(true);
         setLoginError('');
-        // localStorage.setItem('is_auth', 'true');
     } else {
         setLoginError("Password Salah");
         setIsShake(true);
@@ -110,11 +106,10 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setLoginPass(''); // Clear password for security
+    setLoginPass(''); 
     setLoginUser('');
-    setShowSettings(false); // Close settings if open
+    setShowSettings(false); 
     setMobileMenuOpen(false);
-    // localStorage.removeItem('is_auth');
   };
 
   const closeMobileMenu = () => {
@@ -156,10 +151,13 @@ const App: React.FC = () => {
 
   const handleSaveSettings = () => {
     setConfig(tempConfig);
+    // Persist API Key to LocalStorage
+    localStorage.setItem('smpn3_api_key', tempConfig.apiKey);
+    
     setShowSettings(false);
     setMessages(prev => [...prev, {
       role: Role.MODEL,
-      text: `✅ Pengaturan diperbarui.\n\nKS: ${tempConfig.principalName}\nTP: ${tempConfig.schoolYear}`
+      text: `✅ Pengaturan diperbarui.\n\nKS: ${tempConfig.principalName}\nTP: ${tempConfig.schoolYear}\nStatus API Key: ${tempConfig.apiKey ? 'Terpasang' : 'Kosong'}`
     }]);
   };
 
@@ -231,23 +229,18 @@ const App: React.FC = () => {
   if (!isAuthenticated) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-black overflow-hidden relative font-sans">
-            {/* Background Rich Gradient Mesh */}
             <div className="absolute inset-0 bg-[#0f172a]">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-purple-900/40 rounded-full blur-[120px] animate-pulse"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[70%] bg-blue-900/40 rounded-full blur-[120px] animate-pulse delay-1000"></div>
                 <div className="absolute top-[40%] left-[40%] w-[40%] h-[40%] bg-pink-900/30 rounded-full blur-[100px] animate-pulse delay-700"></div>
             </div>
             
-            {/* Noise Texture for that premium feel */}
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
 
             <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-sm p-4 animate-in fade-in zoom-in-95 duration-1000">
-                
-                {/* Avatar Glow Container */}
                 <div className="mb-8 relative group">
                     <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-1000"></div>
                     <div className="relative w-32 h-32 rounded-full bg-slate-800/50 backdrop-blur-md shadow-2xl flex items-center justify-center border border-white/10 ring-1 ring-white/20">
-                         {/* Apple Logo Icon */}
                          <svg viewBox="0 0 384 512" className="h-16 w-16 fill-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" xmlns="http://www.w3.org/2000/svg">
                              <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
                          </svg>
@@ -284,21 +277,15 @@ const App: React.FC = () => {
                         />
                     </div>
 
-                    {/* Fingerprint Button Enhanced */}
                     <div className="flex justify-center pt-8 pb-4">
                         <button 
                             type="submit" 
                             className="group relative flex items-center justify-center w-20 h-20 rounded-full focus:outline-none transition-transform active:scale-95"
                             title="Sentuh untuk Masuk"
                         >
-                            {/* Outer pulsating rings */}
                             <div className="absolute inset-0 rounded-full border border-blue-400/30 animate-[spin_4s_linear_infinite]"></div>
                             <div className="absolute inset-1 rounded-full border border-purple-400/20 animate-[spin_6s_linear_infinite_reverse]"></div>
-                            
-                            {/* Glow background */}
                             <div className="absolute inset-3 bg-blue-500/10 rounded-full blur-lg group-hover:bg-blue-400/30 transition-all duration-500"></div>
-                            
-                            {/* Inner Circle background */}
                             <div className="absolute inset-2 bg-gradient-to-tr from-slate-800 to-slate-900 rounded-full border border-white/10 shadow-inner flex items-center justify-center group-hover:border-blue-400/50 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 text-white/70 group-hover:text-blue-200 transition-colors drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
                                     <path d="M2 12C2 6.48 6.48 2 12 2s10 4.48 10 10" />
@@ -319,12 +306,6 @@ const App: React.FC = () => {
                         <span className="text-red-200 text-xs font-semibold">{loginError}</span>
                     </div>
                 )}
-
-                <div className="absolute bottom-4 flex flex-col items-center space-y-2">
-                    <p className="text-white/80 text-[10px] tracking-[0.25em] font-light drop-shadow-md opacity-70 hover:opacity-100 transition-opacity">
-                        DESIGNED BY ERHA
-                    </p>
-                </div>
             </div>
         </div>
     );
@@ -332,17 +313,13 @@ const App: React.FC = () => {
 
   // --- MAIN APP RENDER ---
   return (
-    // Background Mesh
     <div className="flex h-screen w-full items-center justify-center bg-[#c8ced9] p-0 md:p-4 overflow-hidden relative font-sans text-[13px]" onPaste={(e) => handlePaste(e as any)}>
-       {/* Wallpaper macOS vibes */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#E0C3FC] via-[#8EC5FC] to-[#E0C3FC] opacity-60"></div>
       <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-400/30 rounded-full blur-[100px]"></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-400/30 rounded-full blur-[100px]"></div>
 
-      {/* Main Window */}
       <div className="relative w-full h-full md:max-w-[1280px] md:h-[90vh] bg-white/60 backdrop-blur-2xl shadow-2xl rounded-none md:rounded-2xl border border-white/40 flex overflow-hidden ring-1 ring-white/50">
         
-        {/* Mobile Sidebar Backdrop Overlay */}
         {mobileMenuOpen && (
           <div 
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden animate-in fade-in duration-300"
@@ -350,7 +327,6 @@ const App: React.FC = () => {
           ></div>
         )}
 
-        {/* Sidebar */}
         <aside className={`
             flex flex-col border-r border-white/20
             transition-transform duration-300 ease-in-out
@@ -359,17 +335,14 @@ const App: React.FC = () => {
             ${mobileMenuOpen ? 'translate-x-0 flex' : '-translate-x-full hidden'}
         `}>
           
-          {/* Header Sidebar (Traffic Lights) */}
           <div className="p-4 pt-5 pb-2">
             <div className="flex space-x-2 mb-6 ml-1">
-              {/* Red button closes menu on mobile */}
               <button onClick={closeMobileMenu} className="w-3 h-3 rounded-full bg-[#FF5F57] border border-[#E0443E] shadow-sm hover:opacity-80 transition-opacity"></button>
               <div className="w-3 h-3 rounded-full bg-[#FEBC2E] border border-[#D89E24] shadow-sm"></div>
               <div className="w-3 h-3 rounded-full bg-[#28C840] border border-[#1AAB29] shadow-sm"></div>
             </div>
             
             <div className="flex items-center space-x-3 px-1 mb-2">
-               {/* Apple Logo Style Icon */}
                <div className="flex items-center justify-center text-slate-800">
                   <svg viewBox="0 0 384 512" className="h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
                </div>
@@ -380,7 +353,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Navigation Toggle */}
           <div className="px-4 mb-2">
             <div className="flex p-1 bg-slate-200/50 rounded-lg">
               <button 
@@ -398,7 +370,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Sidebar Content */}
           <div className="flex-1 overflow-y-auto px-3 py-1 custom-scrollbar">
             {activeTab === 'chat' ? (
               <div className="space-y-4">
@@ -433,7 +404,6 @@ const App: React.FC = () => {
             )}
           </div>
 
-          {/* Sidebar Footer */}
           <div className="p-3 border-t border-white/20 bg-white/20 backdrop-blur-md">
             <div className="flex items-center space-x-1 mb-2">
                 <button 
@@ -464,13 +434,10 @@ const App: React.FC = () => {
           </div>
         </aside>
 
-        {/* Main Content Area */}
         <main className="flex-1 flex flex-col min-w-0 bg-transparent relative">
           
-          {/* Header Mobile */}
           <header className="md:hidden p-3 bg-white/80 backdrop-blur-md border-b border-white/20 flex justify-between items-center sticky top-0 z-30">
              <div className="flex items-center space-x-2">
-                {/* Hamburger Menu Button */}
                 <button 
                   onClick={() => setMobileMenuOpen(true)}
                   className="p-1.5 -ml-1.5 rounded-lg text-slate-600 hover:bg-slate-200/50 transition-colors"
@@ -491,7 +458,6 @@ const App: React.FC = () => {
              </button>
           </header>
 
-          {/* Chat Area */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 custom-scrollbar">
             <div className="max-w-[800px] mx-auto space-y-5">
               {messages.map((msg, i) => (
@@ -510,11 +476,9 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Dock / Input Area */}
           <div className="p-4 md:p-6 pt-0 z-20">
             <div className="max-w-[800px] mx-auto relative">
               
-              {/* File Preview */}
               {pendingFiles.length > 0 && (
                 <div className="absolute bottom-full mb-3 left-0 flex flex-wrap gap-2 bg-white/80 backdrop-blur-xl p-2 rounded-xl border border-white/50 shadow-lg animate-in slide-in-from-bottom-2">
                   {pendingFiles.map((file, i) => (
@@ -532,7 +496,6 @@ const App: React.FC = () => {
                 </div>
               )}
 
-              {/* Input Bar */}
               <form onSubmit={handleSendMessage} className="group relative bg-white/70 backdrop-blur-2xl rounded-[24px] border border-white/60 shadow-xl hover:shadow-2xl hover:bg-white/90 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-400/30 transition-all duration-300 flex items-end p-1.5">
                 <div className="pl-1 pb-1">
                    <FileUploader onFilesSelected={(files) => setPendingFiles(prev => [...prev, ...files])} disabled={isLoading} />
@@ -572,7 +535,6 @@ const App: React.FC = () => {
           </div>
         </main>
 
-        {/* Settings Modal */}
         {showSettings && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/10 backdrop-blur-sm animate-in fade-in duration-200">
              <div className="bg-white/85 backdrop-blur-2xl w-full max-w-[400px] rounded-2xl shadow-2xl border border-white/60 p-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -596,6 +558,25 @@ const App: React.FC = () => {
                     <input type="text" value={tempConfig.principalName} onChange={(e) => setTempConfig({...tempConfig, principalName: e.target.value})} className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm mb-2" />
                     <input type="text" value={tempConfig.principalNip} onChange={(e) => setTempConfig({...tempConfig, principalNip: e.target.value})} className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" placeholder="NIP" />
                  </div>
+
+                 {/* API Key Settings Section */}
+                 <div className="pt-4 mt-4 border-t border-slate-200/50 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                    <h3 className="text-xs font-bold text-blue-800 mb-2 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                        API Key (Wajib)
+                    </h3>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Gemini API Key</label>
+                    <input 
+                        type="password" 
+                        value={tempConfig.apiKey} 
+                        onChange={(e) => setTempConfig({...tempConfig, apiKey: e.target.value})} 
+                        className="w-full bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm placeholder-slate-300"
+                        placeholder="Tempel AIza... disini" 
+                    />
+                    <p className="text-[9px] text-slate-400 mt-1">
+                        Dapatkan key gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-blue-500 hover:underline">aistudio.google.com</a>. Key tersimpan lokal di browser.
+                    </p>
+                 </div>
                  
                  {/* Login Settings Section */}
                  <div className="pt-4 mt-4 border-t border-slate-200/50">
@@ -615,7 +596,6 @@ const App: React.FC = () => {
                  <button onClick={handleSaveSettings} className="flex-1 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-md hover:bg-blue-700">Simpan</button>
                </div>
                
-               {/* Logout for Mobile Users inside Modal */}
                <div className="mt-6 pt-4 border-t border-red-200 text-center">
                    <button 
                      onClick={handleLogout}
