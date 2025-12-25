@@ -73,7 +73,8 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message }) => {
         if (trimmedLine === '') {
           formattedHtml.push('<div class="h-2"></div>');
         } else {
-          formattedHtml.push(`<p class="mb-1">${trimmedLine}</p>`);
+          // Added indent-8 for paragraph indentation
+          formattedHtml.push(`<p class="mb-1 indent-8">${trimmedLine}</p>`);
         }
       }
     });
@@ -112,14 +113,14 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message }) => {
               h1, h2, h3 { line-height: 1.2; margin-bottom: 10px; }
               .header-doc { text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 30px; }
               .header-doc h2 { margin: 0; font-size: 16pt; }
-              .header-doc p { margin: 0; font-size: 10pt; }
+              .header-doc p { margin: 0; font-size: 10pt; text-indent: 0; text-align: center; } 
               .flex { display: flex; }
               .ml-2 { margin-left: 0.5cm; }
               .ml-8 { margin-left: 1cm; }
               .ml-14 { margin-left: 1.5cm; }
               .min-w-[25px] { min-width: 25px; display: inline-block; }
               .flex-1 { flex: 1; }
-              p { margin: 0 0 10px 0; }
+              p { margin: 0 0 10px 0; text-indent: 1cm; text-align: justify; }
               h1 { text-align: center; text-transform: uppercase; font-size: 14pt; }
               h2 { font-size: 13pt; margin-top: 20px; }
             </style>

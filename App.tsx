@@ -17,7 +17,7 @@ const App: React.FC = () => {
     setMessages([
       {
         role: Role.MODEL,
-        text: "Selamat datang, Bapak/Ibu! Saya adalah Asisten Kurikulum Digital SMPN 3 Pacet. \n\nAda yang bisa saya bantu hari ini? Anda bisa mengunggah program kerja, rekap nilai, atau meminta saya menyusun draft administrasi. \n\nTips: Sekarang Anda bisa menekan Enter untuk menambah baris baru saat mengetik. Untuk mengirim, silakan klik tombol kirim di pojok kanan bawah."
+        text: "Selamat datang! Saya Asisten Kurikulum Digital SMPN 3 Pacet.\n\nKonfigurasi Tahun Pelajaran 2025/2026 aktif.\nData Kepala Sekolah: Didik Sulistyo, M.M.Pd (NIP. 196605181989011002) telah dimuat.\n\nSilakan ketik instruksi atau unggah dokumen. Tekan Enter untuk baris baru, dan tombol kirim untuk memproses."
       }
     ]);
   }, []);
