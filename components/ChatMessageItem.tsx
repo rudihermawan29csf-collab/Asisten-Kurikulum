@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { ChatMessage, Role } from '../types';
 
 interface ChatMessageItemProps {
@@ -8,35 +8,6 @@ interface ChatMessageItemProps {
 
 const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message }) => {
   const isUser = message.role === Role.USER;
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const selectedVoice = useRef<SpeechSynthesisVoice | null>(null);
-
-  // Pre-load voices to remove delay on click
-  useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      // Prioritaskan Google Bahasa Indonesia karena kualitasnya paling natural/mirip manusia
-      const indoVoice = voices.find(v => v.lang === 'id-ID' && v.name.includes('Google')) ||
-                        voices.find(v => v.lang === 'id-ID');
-      
-      if (indoVoice) {
-        selectedVoice.current = indoVoice;
-      }
-    };
-
-    loadVoices();
-    
-    // Chrome butuh event listener ini karena voices dimuat secara asinkron
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
-
-    return () => {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []); // Hanya jalankan sekali saat mount
 
   // Simple formatter
   const formatMarkdown = (text: string) => {
@@ -98,80 +69,73 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message }) => {
     return formattedHtml.join('');
   };
 
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-       printWindow.document.write(`
-        <html>
-          <head>
-            <title>Dokumen Cetak</title>
-            <style>
-              @page { size: auto; margin: 2cm; }
-              body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; color: black; }
-              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-              th, td { border: 1px solid black; padding: 5px; text-align: left; vertical-align: top; }
-              th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
-              h1, h2 { text-align: center; text-transform: uppercase; margin-bottom: 20px; }
-              .header { text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 20px; }
-              .header h2 { margin: 0; font-size: 14pt; font-weight: normal; }
-              .header h2.bold { font-weight: bold; font-size: 16pt; }
-              .header p { margin: 0; font-size: 10pt; font-style: italic; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h2>PEMERINTAH KABUPATEN CIANJUR</h2>
-              <h2>DINAS PENDIDIKAN PEMUDA DAN OLAHRAGA</h2>
-              <h2 class="bold">SMP NEGERI 3 PACET</h2>
-              <p>Alamat: Jl. Raya Pacet, Cianjur - Jawa Barat</p>
-            </div>
-            ${formatMarkdown(message.text)}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
-  };
+  const handleDownloadWord = () => {
+    // 1. CSS Khusus untuk Dokumen Word agar Resmi dan Rapi
+    const css = `
+      <style>
+        @page { size: A4; margin: 2.54cm; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #000000; }
+        h1, h2, h3, h4, h5, h6 { font-weight: bold; color: #000000; margin-top: 12pt; margin-bottom: 6pt; text-align: center; text-transform: uppercase; }
+        h1 { font-size: 14pt; }
+        h2 { font-size: 13pt; }
+        h3 { font-size: 12pt; }
+        p, div { text-align: justify; margin-bottom: 6pt; }
+        
+        /* Table Styling untuk Word */
+        table { width: 100%; border-collapse: collapse; margin: 12pt 0; border: 1px solid #000; }
+        th, td { border: 1px solid #000; padding: 4pt 6pt; vertical-align: top; text-align: left; }
+        th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
+        
+        /* Kop Surat Resmi */
+        .header-kop { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
+        .header-kop .line1 { margin: 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+        .header-kop .line2 { margin: 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+        .header-kop .school-name { margin: 0; font-size: 18pt; font-weight: bold; text-transform: uppercase; }
+        .header-kop .address { margin: 0; font-size: 11pt; font-style: italic; font-weight: normal; text-transform: none; }
+      </style>
+    `;
 
-  const cleanTextForSpeech = (text: string) => {
-    // Menghapus simbol markdown dan karakter khusus
-    return text
-      .replace(/[#*`_]/g, '') 
-      .replace(/\[.*?\]/g, '') 
-      .replace(/\n/g, '. ')   
-      .replace(/\s+/g, ' ');  
-  };
+    // 2. Konten Header (KOP)
+    const header = `
+      <div class="header-kop">
+        <p class="line1">PEMERINTAH KABUPATEN MOJOKERTO</p>
+        <p class="line2">DINAS PENDIDIKAN KABUPATEN MOJOKERTO</p>
+        <p class="school-name">SMPN 3 PACET</p>
+        <p class="address">Alamat: Jl. Tirtawening Desa Kembangbelor Kec. Pacet Kab. Mojokerto</p>
+      </div>
+    `;
 
-  const handleSpeak = () => {
-    // 1. Hentikan suara yang sedang berjalan (Instant Stop)
-    window.speechSynthesis.cancel();
+    // 3. Konten Body (Menggunakan hasil formatMarkdown)
+    const bodyContent = formatMarkdown(message.text);
 
-    if (isSpeaking) {
-      setIsSpeaking(false);
-      return;
-    }
+    // 4. Struktur HTML Dokumen Lengkap
+    const htmlContent = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset="utf-8">
+        <title>Dokumen SMPN 3 Pacet</title>
+        ${css}
+      </head>
+      <body>
+        ${header}
+        ${bodyContent}
+      </body>
+      </html>
+    `;
 
-    // 2. Buat utterance
-    const textToSpeak = cleanTextForSpeech(message.text);
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    // 5. Generate Blob dan Trigger Download
+    const blob = new Blob(['\ufeff', htmlContent], {
+      type: 'application/msword'
+    });
     
-    // 3. Konfigurasi Suara (Tanpa mencari ulang getVoices, pakai ref)
-    utterance.lang = 'id-ID';
-    utterance.rate = 1.05; // Sedikit lebih cepat agar responsif
-    utterance.pitch = 1.15; // Nada sedikit lebih tinggi (muda)
-    utterance.volume = 1.0;
-
-    if (selectedVoice.current) {
-      utterance.voice = selectedVoice.current;
-    }
-
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    // 4. Langsung bicara
-    setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Dokumen_SMPN3Pacet_${Date.now()}.doc`; // Ekstensi .doc agar kompatibel
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -188,28 +152,16 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message }) => {
           </span>
           {!isUser && (
             <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* Tombol Baca Suara */}
+              {/* Tombol Unduh Word */}
               <button 
-                onClick={handleSpeak} 
-                className={`text-[9px] px-2 py-0.5 rounded-full border transition-colors flex items-center space-x-1 ${
-                  isSpeaking 
-                    ? 'bg-blue-100 text-blue-600 border-blue-200 animate-pulse' 
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
-                }`}
-                title={isSpeaking ? "Berhenti Bicara" : "Dengarkan"}
+                onClick={handleDownloadWord} 
+                className="text-[9px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 transition-colors flex items-center space-x-1"
+                title="Unduh sebagai Dokumen Word"
               >
-                {isSpeaking ? (
-                   <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                ) : (
-                   <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-                )}
-                <span>{isSpeaking ? 'Stop' : 'Baca'}</span>
-              </button>
-              
-              {/* Tombol Cetak */}
-              <button onClick={handlePrint} className="text-[9px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 transition-colors flex items-center space-x-1">
-                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                <span>Cetak</span>
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Word</span>
               </button>
             </div>
           )}
