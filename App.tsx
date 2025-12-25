@@ -35,6 +35,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<FileData[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLoginSettings, setShowLoginSettings] = useState(false); // State baru untuk setting di halaman login
   const [activeTab, setActiveTab] = useState<'chat' | 'history'>('chat');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); 
   
@@ -155,10 +156,15 @@ const App: React.FC = () => {
     localStorage.setItem('smpn3_api_key', tempConfig.apiKey);
     
     setShowSettings(false);
-    setMessages(prev => [...prev, {
-      role: Role.MODEL,
-      text: `✅ Pengaturan diperbarui.\n\nKS: ${tempConfig.principalName}\nTP: ${tempConfig.schoolYear}\nStatus API Key: ${tempConfig.apiKey ? 'Terpasang' : 'Kosong'}`
-    }]);
+    setShowLoginSettings(false);
+    
+    // Only add message if authenticated
+    if (isAuthenticated) {
+      setMessages(prev => [...prev, {
+        role: Role.MODEL,
+        text: `✅ Pengaturan diperbarui.\n\nKS: ${tempConfig.principalName}\nTP: ${tempConfig.schoolYear}\nStatus API Key: ${tempConfig.apiKey ? 'Terpasang' : 'Kosong'}`
+      }]);
+    }
   };
 
   const handlePaste = async (e: React.ClipboardEvent | ClipboardEvent) => {
@@ -306,7 +312,53 @@ const App: React.FC = () => {
                         <span className="text-red-200 text-xs font-semibold">{loginError}</span>
                     </div>
                 )}
+                
+                {/* Button API Key di Login Screen */}
+                <button 
+                  onClick={() => {
+                      setTempConfig(config);
+                      setShowLoginSettings(true);
+                  }}
+                  className="mt-4 text-[10px] text-white/50 hover:text-blue-300 flex items-center justify-center space-x-1 transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                    <span>{config.apiKey ? 'Ubah API Key' : 'Atur API Key'}</span>
+                </button>
             </div>
+
+            {/* Modal Setting API Key di Login Screen */}
+            {showLoginSettings && (
+               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div className="bg-slate-900/90 backdrop-blur-xl w-full max-w-[350px] rounded-2xl shadow-2xl border border-white/20 p-6 animate-in zoom-in-95 duration-200">
+                      <h3 className="text-white text-lg font-bold mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                        Setup Gemini API Key
+                      </h3>
+                      
+                      <p className="text-slate-400 text-xs mb-4">
+                        Agar aplikasi dapat bekerja, silakan tempel API Key Anda di bawah ini. Key hanya disimpan di browser Anda.
+                      </p>
+
+                      <div className="space-y-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">API Key</label>
+                            <input 
+                                type="password" 
+                                value={tempConfig.apiKey} 
+                                onChange={(e) => setTempConfig({...tempConfig, apiKey: e.target.value})} 
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm placeholder-slate-600"
+                                placeholder="Tempel AIza... disini" 
+                            />
+                          </div>
+                      </div>
+
+                      <div className="mt-6 flex space-x-3">
+                          <button onClick={() => setShowLoginSettings(false)} className="flex-1 px-4 py-2 bg-slate-800 text-slate-300 text-xs font-medium rounded-lg hover:bg-slate-700 transition-colors">Batal</button>
+                          <button onClick={handleSaveSettings} className="flex-1 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-lg hover:bg-blue-500 transition-colors">Simpan</button>
+                      </div>
+                  </div>
+               </div>
+            )}
         </div>
     );
   }
