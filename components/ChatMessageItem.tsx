@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage, Role } from '../types';
 
 interface ChatMessageItemProps {
@@ -8,6 +8,35 @@ interface ChatMessageItemProps {
 
 const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message }) => {
   const isUser = message.role === Role.USER;
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const selectedVoice = useRef<SpeechSynthesisVoice | null>(null);
+
+  // Pre-load voices to remove delay on click
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      // Prioritaskan Google Bahasa Indonesia karena kualitasnya paling natural/mirip manusia
+      const indoVoice = voices.find(v => v.lang === 'id-ID' && v.name.includes('Google')) ||
+                        voices.find(v => v.lang === 'id-ID');
+      
+      if (indoVoice) {
+        selectedVoice.current = indoVoice;
+      }
+    };
+
+    loadVoices();
+    
+    // Chrome butuh event listener ini karena voices dimuat secara asinkron
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    return () => {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []); // Hanya jalankan sekali saat mount
 
   // Simple formatter
   const formatMarkdown = (text: string) => {
@@ -105,6 +134,46 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message }) => {
     }
   };
 
+  const cleanTextForSpeech = (text: string) => {
+    // Menghapus simbol markdown dan karakter khusus
+    return text
+      .replace(/[#*`_]/g, '') 
+      .replace(/\[.*?\]/g, '') 
+      .replace(/\n/g, '. ')   
+      .replace(/\s+/g, ' ');  
+  };
+
+  const handleSpeak = () => {
+    // 1. Hentikan suara yang sedang berjalan (Instant Stop)
+    window.speechSynthesis.cancel();
+
+    if (isSpeaking) {
+      setIsSpeaking(false);
+      return;
+    }
+
+    // 2. Buat utterance
+    const textToSpeak = cleanTextForSpeech(message.text);
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    
+    // 3. Konfigurasi Suara (Tanpa mencari ulang getVoices, pakai ref)
+    utterance.lang = 'id-ID';
+    utterance.rate = 1.05; // Sedikit lebih cepat agar responsif
+    utterance.pitch = 1.15; // Nada sedikit lebih tinggi (muda)
+    utterance.volume = 1.0;
+
+    if (selectedVoice.current) {
+      utterance.voice = selectedVoice.current;
+    }
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    // 4. Langsung bicara
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} group animate-in slide-in-from-bottom-2 duration-300`}>
       <div className={`relative max-w-[90%] sm:max-w-[85%] rounded-[18px] px-4 py-3 shadow-sm ${
@@ -118,10 +187,31 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message }) => {
             {isUser ? 'Anda' : 'Asisten AI'}
           </span>
           {!isUser && (
-            <button onClick={handlePrint} className="text-[9px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 transition-colors flex items-center space-x-1 opacity-0 group-hover:opacity-100">
-              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-              <span>Cetak</span>
-            </button>
+            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Tombol Baca Suara */}
+              <button 
+                onClick={handleSpeak} 
+                className={`text-[9px] px-2 py-0.5 rounded-full border transition-colors flex items-center space-x-1 ${
+                  isSpeaking 
+                    ? 'bg-blue-100 text-blue-600 border-blue-200 animate-pulse' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                }`}
+                title={isSpeaking ? "Berhenti Bicara" : "Dengarkan"}
+              >
+                {isSpeaking ? (
+                   <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                ) : (
+                   <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                )}
+                <span>{isSpeaking ? 'Stop' : 'Baca'}</span>
+              </button>
+              
+              {/* Tombol Cetak */}
+              <button onClick={handlePrint} className="text-[9px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 transition-colors flex items-center space-x-1">
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                <span>Cetak</span>
+              </button>
+            </div>
           )}
         </div>
 
