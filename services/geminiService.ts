@@ -47,7 +47,9 @@ export class GeminiService {
 
     // Inisialisasi AI secara dinamis menggunakan key dari Config (Input User)
     const ai = new GoogleGenAI({ apiKey: config.apiKey });
-    const model = 'gemini-2.0-flash'; // Menggunakan model flash agar lebih cepat & hemat
+    
+    // PENTING: Gunakan model eksperimental yang tersedia
+    const model = 'gemini-2.0-flash-exp'; 
     
     const contents = messages.map(msg => {
       const parts: any[] = [{ text: msg.text }];
@@ -82,10 +84,28 @@ export class GeminiService {
       return response.text || "Maaf, saya tidak dapat menghasilkan respon saat ini.";
     } catch (error: any) {
       console.error("Gemini API Error:", error);
-      if (error.message && error.message.includes("API key")) {
-          return "⚠️ **API Key Tidak Valid.**\nMohon periksa kembali API Key yang Anda masukkan di menu Pengaturan.";
+      
+      // Error Handling yang lebih detail untuk User
+      let errorMessage = "Terjadi kesalahan saat menghubungi server.";
+
+      if (error.message) {
+          if (error.message.includes("API key")) {
+              return "⚠️ **API Key Tidak Valid**\nMohon periksa kembali API Key yang Anda masukkan di menu Pengaturan. Pastikan tidak ada spasi tambahan.";
+          }
+          if (error.message.includes("404") || error.message.includes("not found")) {
+               return `⚠️ **Model Tidak Ditemukan**\nModel '${model}' mungkin sedang tidak tersedia atau API Key Anda tidak memiliki akses ke model ini.`;
+          }
+          if (error.message.includes("429")) {
+               return "⚠️ **Batas Kuota Tercapai**\nAnda telah mencapai batas penggunaan API gratis. Mohon tunggu beberapa saat sebelum mencoba lagi.";
+          }
+          if (error.message.includes("fetch failed")) {
+               return "⚠️ **Koneksi Gagal**\nTidak dapat menghubungi server Google. Periksa koneksi internet Anda.";
+          }
+          // Tampilkan pesan error asli untuk debugging jika tidak masuk kategori di atas
+          errorMessage += `\n\nDetail: ${error.message}`;
       }
-      return "Terjadi kesalahan saat menghubungi server. Silakan coba lagi atau periksa koneksi internet Anda.";
+      
+      return `${errorMessage}\n\nSilakan coba lagi.`;
     }
   }
 }
