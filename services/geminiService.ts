@@ -42,14 +42,15 @@ export class GeminiService {
   async chat(messages: ChatMessage[], config: SchoolConfig): Promise<string> {
     // Cek apakah API Key sudah diisi di pengaturan
     if (!config.apiKey || config.apiKey.trim() === "") {
-        return "⚠️ **API Key belum diatur.**\n\nSilakan buka menu **Pengaturan** (klik nama akun di pojok kiri bawah), lalu masukkan Google Gemini API Key Anda pada kolom yang tersedia.\n\nAnda bisa mendapatkannya gratis di: aistudio.google.com";
+        return "⚠️ **API Key Belum Terpasang**\n\nAplikasi ini memerlukan 'Kunci Akses' dari Google agar bisa berpikir.\n\nCara mendapatkan (Gratis Selamanya):\n1. Buka link: aistudio.google.com/app/apikey\n2. Login dengan akun Google/Gmail (bisa akun pribadi).\n3. Klik 'Create API Key'.\n4. Salin kodenya dan tempel di menu Pengaturan aplikasi ini.";
     }
 
     // Inisialisasi AI secara dinamis menggunakan key dari Config (Input User)
     const ai = new GoogleGenAI({ apiKey: config.apiKey });
     
-    // Menggunakan model flash yang lebih stabil dan efisien
-    const model = 'gemini-3-flash-preview'; 
+    // MENGGUNAKAN MODEL STABIL & HEMAT KUOTA
+    // 'gemini-2.0-flash-exp' memiliki performa tinggi dengan kuota gratis yang cukup longgar.
+    const model = 'gemini-2.0-flash-exp'; 
     
     const contents = messages.map(msg => {
       const parts: any[] = [{ text: msg.text }];
@@ -90,16 +91,16 @@ export class GeminiService {
 
       if (error.message) {
           if (error.message.includes("API key")) {
-              return "⚠️ **API Key Tidak Valid**\nMohon periksa kembali API Key yang Anda masukkan di menu Pengaturan. Pastikan tidak ada spasi tambahan.";
+              return "⚠️ **API Key Tidak Valid**\nMohon periksa kembali API Key yang Anda masukkan di menu Pengaturan. Pastikan menyalin semua karakter dengan benar.";
           }
           if (error.message.includes("404") || error.message.includes("not found")) {
-               return `⚠️ **Model Tidak Ditemukan**\nModel '${model}' mungkin sedang tidak tersedia atau API Key Anda tidak memiliki akses ke model ini.`;
+               return `⚠️ **Model Sedang Sibuk**\nServer Google sedang padat. Mohon coba lagi dalam 1 menit.`;
           }
           if (error.message.includes("429")) {
-               return "⚠️ **Batas Kuota Tercapai**\nAnda telah mencapai batas penggunaan API gratis untuk hari/menit ini.\n\nSolusi:\n1. Tunggu beberapa saat dan coba lagi.\n2. Buat API Key baru dengan akun Google (Gmail) yang berbeda di aistudio.google.com.";
+               return "⚠️ **Batas Kuota Harian Tercapai**\n\nKunci API Gratis Anda sudah habis untuk saat ini.\n\nSolusi Cepat:\n1. Gunakan Akun Google (Gmail) LAIN untuk membuat API Key baru di aistudio.google.com\n2. Ganti API Key di menu Pengaturan dengan yang baru.";
           }
           if (error.message.includes("fetch failed")) {
-               return "⚠️ **Koneksi Gagal**\nTidak dapat menghubungi server Google. Periksa koneksi internet Anda.";
+               return "⚠️ **Koneksi Internet Bermasalah**\nTidak dapat menghubungi server Google. Periksa wifi/data Anda.";
           }
           // Tampilkan pesan error asli untuk debugging jika tidak masuk kategori di atas
           errorMessage += `\n\nDetail: ${error.message}`;
