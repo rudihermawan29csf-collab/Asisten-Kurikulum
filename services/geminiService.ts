@@ -48,8 +48,8 @@ export class GeminiService {
     // Inisialisasi AI secara dinamis menggunakan key dari Config (Input User)
     const ai = new GoogleGenAI({ apiKey: config.apiKey });
     
-    // PENTING: Gunakan model eksperimental yang tersedia
-    const model = 'gemini-2.0-flash-exp'; 
+    // Menggunakan model flash yang lebih stabil dan efisien
+    const model = 'gemini-3-flash-preview'; 
     
     const contents = messages.map(msg => {
       const parts: any[] = [{ text: msg.text }];
@@ -96,7 +96,7 @@ export class GeminiService {
                return `⚠️ **Model Tidak Ditemukan**\nModel '${model}' mungkin sedang tidak tersedia atau API Key Anda tidak memiliki akses ke model ini.`;
           }
           if (error.message.includes("429")) {
-               return "⚠️ **Batas Kuota Tercapai**\nAnda telah mencapai batas penggunaan API gratis. Mohon tunggu beberapa saat sebelum mencoba lagi.";
+               return "⚠️ **Batas Kuota Tercapai**\nAnda telah mencapai batas penggunaan API gratis untuk hari/menit ini.\n\nSolusi:\n1. Tunggu beberapa saat dan coba lagi.\n2. Buat API Key baru dengan akun Google (Gmail) yang berbeda di aistudio.google.com.";
           }
           if (error.message.includes("fetch failed")) {
                return "⚠️ **Koneksi Gagal**\nTidak dapat menghubungi server Google. Periksa koneksi internet Anda.";
